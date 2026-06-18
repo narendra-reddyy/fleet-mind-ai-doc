@@ -63,7 +63,7 @@ export function Contact() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Work email</Label>
-                  <Input id="email" type="email" required placeholder="you@company.com" />
+                  <Input id="email" type="email" required placeholder="john@northboundlogistics.com" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="fleet">Fleet size</Label>
