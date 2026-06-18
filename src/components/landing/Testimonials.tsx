@@ -1,15 +1,13 @@
 const quotes = [
   {
-    quote:
-      "Carrier (84 Trucks)\n\"FleetMind identified an insurance certificate that was about to expire before it became a compliance issue.\"",
-    name: "Marcus Halloway",
+    quote: "Fleet Scenario #1\nCompliance Management\n84 Trucks",
+    name: "Demo Customer",
     role: "Director of Ops · Northbound Logistics",
     stat: "84 trucks",
   },
   {
-    quote:
-      "(212 Trucks)\n\"We asked FleetMind for Q1 maintenance spend per truck and received a sourced answer in seconds.\"",
-    name: "Priya Ramachandran",
+    quote: "Fleet Scenario #2\nMaintenance Analytics\n212 Trucks",
+    name: "Demo Customer",
     role: "CFO · Summit Transit",
     stat: "212 trucks",
   },
