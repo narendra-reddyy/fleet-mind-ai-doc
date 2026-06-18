@@ -31,11 +31,11 @@ export function Nav() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-            Sign in
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+            <Link to="/dashboard">Sign in</Link>
           </Button>
-          <Button variant="hero" size="sm">
-            Get a demo
+          <Button variant="hero" size="sm" asChild>
+            <Link to="/dashboard">Get a demo</Link>
           </Button>
         </div>
       </nav>
