@@ -1,14 +1,14 @@
 const quotes = [
   {
     quote:
-      "We cancelled three spreadsheets and a filing cabinet in the first week. FleetMind told us about an expired insurance policy our broker had missed.",
+      "Carrier (84 Trucks)\n\"FleetMind identified an insurance certificate that was about to expire before it became a compliance issue.\"",
     name: "Marcus Halloway",
     role: "Director of Ops · Northbound Logistics",
     stat: "84 trucks",
   },
   {
     quote:
-      "I asked it for Q1 maintenance spend per truck on a Sunday night. Three seconds later I had the answer and the receipts. That was the sale.",
+      "(212 Trucks)\n\"We asked FleetMind for Q1 maintenance spend per truck and received a sourced answer in seconds.\"",
     name: "Priya Ramachandran",
     role: "CFO · Summit Transit",
     stat: "212 trucks",
@@ -34,7 +34,7 @@ export function Testimonials() {
     <section id="testimonials" className="relative py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-xs uppercase tracking-[0.2em] text-primary-glow">Customers</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-primary-glow">FLEET SCENARIOS</span>
           <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight md:text-5xl">
             Operators don't have time for software that gets in the way.
           </h2>
@@ -46,8 +46,8 @@ export function Testimonials() {
               key={q.name}
               className="rounded-2xl border border-border bg-surface/60 p-8 transition-all hover:border-primary/40 hover:shadow-elegant"
             >
-              <blockquote className="font-display text-xl leading-snug tracking-tight md:text-2xl">
-                "{q.quote}"
+              <blockquote className="whitespace-pre-line font-display text-xl leading-snug tracking-tight md:text-2xl">
+                {q.quote.includes('\n') ? q.quote : `"${q.quote}"`}
               </blockquote>
               <figcaption className="mt-6 flex items-center justify-between border-t border-border pt-5">
                 <div>
