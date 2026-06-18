@@ -705,6 +705,28 @@ function AssistantView() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+        <div className="border-t border-border px-3 pt-3 pb-2 flex flex-wrap gap-1.5">
+          {quickActions.map((a) => (
+            <button
+              key={a.label}
+              onClick={() => send(a.question)}
+              className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] text-primary-glow hover:bg-primary/20 transition-colors"
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(input);
+          }}
+          className="border-t border-border p-3 flex items-center gap-2"
+        >
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Ask FleetMind anything about your fleet…"
             className="flex-1 rounded-md border border-border bg-background/70 px-3 py-2 text-sm outline-none focus:border-primary/50"
           />
