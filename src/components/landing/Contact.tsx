@@ -67,7 +67,7 @@ export function Contact() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="fleet">Fleet size</Label>
-                  <Input id="fleet" type="number" min={1} required placeholder="25" />
+                  <Input id="fleet" type="number" min={1} required placeholder="50" />
                 </div>
               </div>
               <div className="space-y-1.5">
