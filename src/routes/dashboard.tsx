@@ -695,16 +695,6 @@ function AssistantView() {
           ))}
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(input);
-          }}
-          className="border-t border-border p-3 flex items-center gap-2"
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
         <div className="border-t border-border px-3 pt-3 pb-2 flex flex-wrap gap-1.5">
           {quickActions.map((a) => (
             <button
