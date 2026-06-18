@@ -584,39 +584,47 @@ function DriversView() {
 
 const sampleQuestions = [
   "Which registrations expire this month?",
-  "Show missing driver certifications.",
-  "What vehicles have overdue maintenance?",
-  "Summarize compliance risks.",
   "Show insurance policies expiring within 30 days.",
+  "Which drivers need CDL renewal?",
+  "Summarize compliance risks.",
+  "What maintenance items are overdue?",
 ];
 
 const sampleAnswers: Record<string, { text: string; sources: string[] }> = {
   "Which registrations expire this month?": {
     text:
-      "4 vehicle registrations expire within the next 30 days:\n\n• Truck #1402 (Freightliner Cascadia · TX) — expires Jul 09\n• Truck #1024 (Peterbilt 579 · TX) — expires Jul 18\n• Truck #0922 (Kenworth T680 · OK) — expires Jul 24\n• Truck #1655 (Volvo VNL · TX) — expires Jul 29\n\nRecommend filing renewals this week to avoid 14-day suspension windows.",
-    sources: ["reg_TX-1402.pdf", "reg_TX-1024.pdf", "reg_OK-0922.pdf", "reg_TX-1655.pdf"],
+      "4 vehicle registrations expire within the next 30 days:\n\n• Truck #1402 (Freightliner Cascadia · TX) — expires Jul 09, 2026\n• Truck #1024 (Peterbilt 579 · TX) — expires Jul 18, 2026\n• Truck #0922 (Kenworth T680 · OK) — expires Jul 24, 2026\n• Truck #1655 (Volvo VNL · TX) — expires Jul 29, 2026\n\nRecommend filing renewals this week to avoid 14-day suspension windows.",
+    sources: ["Vehicle Registration TX-1402", "Vehicle Registration TX-1024", "Vehicle Registration OK-0922", "Vehicle Registration TX-1655"],
   },
-  "Show missing driver certifications.": {
+  "Show insurance policies expiring within 30 days.": {
     text:
-      "3 active drivers are missing required certifications:\n\n• James O'Connor — HazMat endorsement missing (assigned to tanker route)\n• Sarah Lee — TWIC card not on file\n• Robert Khan — DOT medical card expired 6 days ago\n\nBlock dispatch for these drivers until resolved.",
-    sources: ["driver_oconnor.json", "driver_lee.json", "driver_khan_med.pdf"],
+      "2 insurance policies expire within the next 30 days:\n\n• Progressive Commercial — fleet auto liability — expires Jul 02, 2026 ($1.2M coverage)\n• GreatWest Casualty — cargo policy — expires Jul 16, 2026 ($250k coverage)\n\nBoth brokers have been notified. Renewal quotes attached.",
+    sources: ["Policy — Progressive Commercial", "Policy — GreatWest Casualty"],
   },
-  "What vehicles have overdue maintenance?": {
+  "Which drivers need CDL renewal?": {
     text:
-      "8 vehicles have overdue maintenance items:\n\n• Truck #0871 — DOT inspection 12 days overdue (HIGH)\n• Truck #1132 — brake service 8 days overdue (HIGH)\n• Truck #1488 — oil change 4 days overdue\n• 5 additional units overdue on tire rotation\n\nTotal estimated cost based on prior invoices: $4,820.",
-    sources: ["maint_0871.pdf", "maint_1132.pdf", "invoice_history_q1.csv"],
+      "3 drivers have CDLs expiring within 60 days:\n\n• James O'Connor — CDL Class A (TX) expires Jul 12, 2026\n• Maria Alvarez — CDL Class A (TX) expires Jul 28, 2026\n• Robert Khan — CDL Class A (OK) expires Aug 09, 2026\n\nSend renewal reminders and block dispatch 7 days before expiration.",
+    sources: ["Driver File — J. O'Connor", "Driver File — M. Alvarez", "Driver File — R. Khan"],
   },
   "Summarize compliance risks.": {
     text:
       "Top 3 compliance risks right now:\n\n1. Insurance — Progressive Commercial fleet certificate expires in 14 days. Lapse would ground all 247 vehicles.\n2. Registrations — 4 TX vehicles expiring in July; renewal lead time is 7–10 business days.\n3. Driver medical cards — 3 drivers expiring within 60 days, including 1 already past due.\n\nOverall compliance score: 96% (up 1.2% MoM).",
-    sources: ["policy_progressive.pdf", "compliance_summary_q2.pdf"],
+    sources: ["Compliance Summary Q2 2026", "Policy — Progressive Commercial"],
   },
-  "Show insurance policies expiring within 30 days.": {
+  "What maintenance items are overdue?": {
     text:
-      "2 insurance policies expire within the next 30 days:\n\n• Progressive Commercial — fleet auto liability — expires Jul 02 ($1.2M coverage)\n• GreatWest Casualty — cargo policy — expires Jul 16 ($250k coverage)\n\nBoth brokers have been notified. Renewal quotes attached.",
-    sources: ["policy_progressive.pdf", "policy_greatwest.pdf"],
+      "8 vehicles have overdue maintenance items:\n\n• Truck #0871 — DOT inspection 12 days overdue (HIGH)\n• Truck #1132 — brake service 8 days overdue (HIGH)\n• Truck #1488 — oil change 4 days overdue\n• 5 additional units overdue on tire rotation\n\nTotal estimated cost based on prior invoices: $4,820.",
+    sources: ["Maintenance Log — Truck #0871", "Maintenance Log — Truck #1132", "Invoice History Q1 2026"],
   },
 };
+
+const quickActions: { label: string; question: string }[] = [
+  { label: "Compliance Summary", question: "Summarize compliance risks." },
+  { label: "Expiring Documents", question: "Which registrations expire this month?" },
+  { label: "Driver Certifications", question: "Which drivers need CDL renewal?" },
+  { label: "Insurance Review", question: "Show insurance policies expiring within 30 days." },
+  { label: "Maintenance Review", question: "What maintenance items are overdue?" },
+];
 
 type ChatMessage = { role: "user" | "assistant"; text: string; sources?: string[] };
 
@@ -684,6 +692,18 @@ function AssistantView() {
                 )}
               </div>
             </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border px-3 pt-3 pb-2 flex flex-wrap gap-1.5">
+          {quickActions.map((a) => (
+            <button
+              key={a.label}
+              onClick={() => send(a.question)}
+              className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] text-primary-glow hover:bg-primary/20 transition-colors"
+            >
+              {a.label}
+            </button>
           ))}
         </div>
 
