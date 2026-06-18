@@ -57,7 +57,7 @@ export function Contact() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="company">Company</Label>
-                  <Input id="company" required placeholder="Acme Trucking" />
+                  <Input id="company" required placeholder="Northbound Logistics" />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
