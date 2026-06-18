@@ -72,7 +72,7 @@ export function Contact() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="message">What are you trying to solve?</Label>
-                <Textarea id="message" rows={4} placeholder="We're drowning in fuel receipts and IFTA filings..." />
+                <Textarea id="message" rows={4} placeholder="Need help managing compliance documents and vehicle records," />
               </div>
               <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
                 {loading ? "Sending..." : "Book a demo"} <ArrowRight className="h-4 w-4" />
