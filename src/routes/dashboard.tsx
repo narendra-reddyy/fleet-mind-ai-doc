@@ -1351,12 +1351,47 @@ function AssistantView() {
 /* ---------------- Settings ---------------- */
 
 function SettingsView() {
+  // Compliance & Alerts
+  const [alertThresholds, setAlertThresholds] = useState({ critical: 7, warning: 30, notice: 60 });
+  const [alertToggles, setAlertToggles] = useState({
+    registration: true,
+    insurance: true,
+    cdl: true,
+    dotInspection: true,
+  });
+
+  // Notifications
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [notificationEmail, setNotificationEmail] = useState("ops@acmetrucking.com");
+
+  // AI & Document Processing
+  const [aiFeatures] = useState({
+    autoClassification: true,
+    metadataExtraction: true,
+    expirationDetection: true,
+    aiAssistantIndexing: true,
+  });
+
+  // Demo Data
+  const [resetTick, setResetTick] = useState(0);
+  const [resetLabel, setResetLabel] = useState("Reset demo data");
+
+  function handleResetDemo() {
+    setResetLabel("Resetting demo data...");
+    setTimeout(() => {
+      setResetTick((t) => t + 1);
+      setResetLabel("Demo data reset");
+      setTimeout(() => setResetLabel("Reset demo data"), 2000);
+    }, 800);
+  }
+
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-3xl space-y-6">
       <div>
         <h2 className="font-display text-xl font-semibold">Workspace settings</h2>
         <p className="text-sm text-muted-foreground">Acme Trucking · Owner plan</p>
       </div>
+
       <div className="rounded-xl border border-border bg-surface/50 p-5 space-y-4">
         {[
           ["Company name", "Acme Trucking LLC"],
@@ -1370,6 +1405,141 @@ function SettingsView() {
           </div>
         ))}
       </div>
+
+      <section className="rounded-xl border border-border bg-surface/50 p-5">
+        <div className="mb-4">
+          <h3 className="font-display text-base font-semibold flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            Compliance & Alerts
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Configure which documents trigger alerts and when.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          {[
+            { key: "critical", label: "Critical", sub: "Days before expiry" },
+            { key: "warning", label: "Warning", sub: "Days before expiry" },
+            { key: "notice", label: "Notice", sub: "Days before expiry" },
+          ].map(({ key, label, sub }) => (
+            <div key={key} className="space-y-1.5">
+              <Label htmlFor={`threshold-${key}`} className="text-xs">
+                {label}
+              </Label>
+              <Input
+                id={`threshold-${key}`}
+                type="number"
+                min={0}
+                max={365}
+                value={alertThresholds[key as keyof typeof alertThresholds]}
+                onChange={(e) =>
+                  setAlertThresholds((t) => ({
+                    ...t,
+                    [key]: Math.max(0, Math.min(365, Number(e.target.value))),
+                  }))
+                }
+                className="h-8 text-sm bg-transparent"
+              />
+              <p className="text-[10px] text-muted-foreground">{sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { key: "registration", label: "Registration" },
+            { key: "insurance", label: "Insurance" },
+            { key: "cdl", label: "CDL" },
+            { key: "dotInspection", label: "DOT Inspection" },
+          ].map(({ key, label }) => (
+            <div key={key} className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-3 py-2.5">
+              <span className="text-sm">{label}</span>
+              <Switch
+                id={`alert-${key}`}
+                checked={alertToggles[key as keyof typeof alertToggles]}
+                onCheckedChange={(checked) =>
+                  setAlertToggles((t) => ({ ...t, [key]: checked }))
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface/50 p-5">
+        <div className="mb-4">
+          <h3 className="font-display text-base font-semibold flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            Notifications
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Where compliance alerts should be sent.</p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-3 py-2.5">
+            <div className="space-y-0.5">
+              <span className="text-sm font-medium">Email alerts</span>
+              <p className="text-xs text-muted-foreground">Receive compliance alerts by email.</p>
+            </div>
+            <Switch id="email-alerts" checked={emailAlerts} onCheckedChange={setEmailAlerts} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="notification-email" className="text-xs">
+              Notification email
+            </Label>
+            <Input
+              id="notification-email"
+              type="email"
+              value={notificationEmail}
+              onChange={(e) => setNotificationEmail(e.target.value)}
+              disabled={!emailAlerts}
+              className="h-8 text-sm bg-transparent disabled:opacity-50"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface/50 p-5">
+        <div className="mb-4">
+          <h3 className="font-display text-base font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            AI & Document Processing
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Capabilities currently enabled for this workspace.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { key: "autoClassification", label: "Automatic document classification" },
+            { key: "metadataExtraction", label: "Metadata extraction" },
+            { key: "expirationDetection", label: "Expiration date detection" },
+            { key: "aiAssistantIndexing", label: "AI Assistant indexing" },
+          ].map(({ key, label }) => (
+            <div key={key} className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-3 py-2.5">
+              <span className="text-sm">{label}</span>
+              <div className="flex items-center gap-1.5 text-xs font-medium text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Enabled
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface/50 p-5">
+        <div className="mb-4">
+          <h3 className="font-display text-base font-semibold flex items-center gap-2">
+            <RotateCcw className="h-4 w-4 text-primary" />
+            Demo Data
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Reset demo documents, alerts and assistant data to the original sample set.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleResetDemo} className="gap-2">
+          <RotateCcw className="h-4 w-4" />
+          {resetLabel}
+        </Button>
+      </section>
     </div>
   );
 }
+
