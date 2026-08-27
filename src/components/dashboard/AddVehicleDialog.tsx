@@ -31,12 +31,13 @@ import {
   type VehicleStatus,
   type VehicleType,
 } from "@/lib/fleet-vehicles";
+import type { Driver } from "@/lib/fleet-drivers";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   vehicles: Vehicle[];
-  drivers: string[];
+  drivers: Driver[];
   onSave: (vehicle: Vehicle) => void;
 };
 
@@ -232,15 +233,15 @@ export function AddVehicleDialog({ open, onOpenChange, vehicles, drivers, onSave
 
             <div className="sm:col-span-2">
               <Label>Assigned driver</Label>
-              <Select value={draft.driver} onValueChange={(v) => set("driver", v)}>
+              <Select value={draft.driverId} onValueChange={(v) => set("driverId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-64">
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {drivers.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
