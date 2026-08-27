@@ -5,6 +5,8 @@
  * `vehicles` table later (see plan §3) without touching the UI layer.
  */
 
+import { driverById, driverIdByName } from "./fleet-drivers";
+
 export type VehicleType = "Tractor" | "Trailer" | "Box Truck" | "Van" | "Other";
 export type VehicleStatus = "Active" | "In Maintenance" | "Out of Service";
 
@@ -20,7 +22,8 @@ export type Vehicle = {
   type: VehicleType;
   status: VehicleStatus;
   mileage?: number;
-  driver?: string; // assigned driver name (driver_id later)
+  driverId?: string; // FK -> drivers.id
+  driver?: string; // denormalised display name, derived from driverId
   notes?: string;
   createdAt: string; // yyyy-mm-dd
 };
@@ -45,7 +48,7 @@ export type VehicleDraft = {
   type: VehicleType;
   status: VehicleStatus;
   mileage: string;
-  driver: string;
+  driverId: string; // driver id or "unassigned"
   notes: string;
 };
 
@@ -60,7 +63,7 @@ export const emptyVehicleDraft: VehicleDraft = {
   type: "Tractor",
   status: "Active",
   mileage: "",
-  driver: "",
+  driverId: "unassigned",
   notes: "",
 };
 
@@ -106,6 +109,7 @@ export function isVehicleDraftValid(draft: VehicleDraft, existing: Vehicle[]) {
 }
 
 export function draftToVehicle(draft: VehicleDraft): Vehicle {
+  const assigned = draft.driverId !== "unassigned" ? driverById(draft.driverId) : undefined;
   return {
     id: `veh_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     unitId: draft.unitId.trim(),
@@ -118,7 +122,8 @@ export function draftToVehicle(draft: VehicleDraft): Vehicle {
     type: draft.type,
     status: draft.status,
     mileage: draft.mileage.trim() ? Number(draft.mileage) : undefined,
-    driver: draft.driver && draft.driver !== "unassigned" ? draft.driver : undefined,
+    driverId: assigned?.id,
+    driver: assigned?.name,
     notes: draft.notes.trim() || undefined,
     createdAt: new Date().toISOString().slice(0, 10),
   };
@@ -133,12 +138,12 @@ export const seedVehicles: Vehicle[] = [
   {
     id: "veh_1024", unitId: "TRK-1024", vin: "1XPBDP9X1MD778201", make: "Peterbilt", model: "579",
     year: 2023, plate: "TX-8842K", plateState: "TX", type: "Tractor", status: "Active",
-    mileage: 184210, driver: "Marcus Johnson", createdAt: "2025-01-14",
+    mileage: 184210, driverId: driverIdByName("Marcus Johnson"), driver: "Marcus Johnson", createdAt: "2025-01-14",
   },
   {
     id: "veh_1132", unitId: "TRK-1132", vin: "1XKYDP9X2NJ441907", make: "Kenworth", model: "T680",
     year: 2022, plate: "TX-4419L", plateState: "TX", type: "Tractor", status: "Active",
-    mileage: 212540, driver: "Elena Vasquez", createdAt: "2025-01-14",
+    mileage: 212540, driverId: driverIdByName("Elena Vasquez"), driver: "Elena Vasquez", createdAt: "2025-01-14",
   },
   {
     id: "veh_1402", unitId: "TRK-1402", vin: "3AKJHHDR8PSLB2114", make: "Freightliner", model: "Cascadia",
@@ -148,11 +153,11 @@ export const seedVehicles: Vehicle[] = [
   {
     id: "veh_0871", unitId: "TRK-0871", vin: "4V4NC9EH5MN287402", make: "Volvo", model: "VNL 760",
     year: 2021, plate: "AZ-8740R", plateState: "AZ", type: "Tractor", status: "Active",
-    mileage: 298402, driver: "David Park", createdAt: "2024-11-08",
+    mileage: 298402, driverId: driverIdByName("David Park"), driver: "David Park", createdAt: "2024-11-08",
   },
   {
     id: "veh_1488", unitId: "TRK-1488", vin: "1XPXDP9X8RD554019", make: "Peterbilt", model: "389",
     year: 2024, plate: "TX-5401P", plateState: "TX", type: "Tractor", status: "Active",
-    mileage: 54019, driver: "Maria Gonzalez", createdAt: "2025-06-21",
+    mileage: 54019, driverId: driverIdByName("Maria Gonzalez"), driver: "Maria Gonzalez", createdAt: "2025-06-21",
   },
 ];
