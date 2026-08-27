@@ -239,6 +239,8 @@ const seedDocuments: FleetDoc[] = [
 type FleetContextValue = {
   documents: FleetDoc[];
   ingest: (files: File[]) => void;
+  vehicles: Vehicle[];
+  addVehicle: (vehicle: Vehicle) => void;
 };
 
 const FleetContext = createContext<FleetContextValue | null>(null);
