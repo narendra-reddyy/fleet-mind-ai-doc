@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { createContext, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { AddVehicleDialog } from "@/components/dashboard/AddVehicleDialog";
 import { VehicleDetail } from "@/components/dashboard/VehicleDetail";
 import { formatMileage, seedVehicles, type Vehicle } from "@/lib/fleet-vehicles";
+import { assignableDrivers, drivers } from "@/lib/fleet-drivers";
 
 
 export const Route = createFileRoute("/dashboard")({
@@ -384,9 +385,36 @@ function DashboardPage() {
   const [documents, setDocuments] = useState<FleetDoc[]>(seedDocuments);
   const [vehicles, setVehicles] = useState<Vehicle[]>(seedVehicles);
 
+  // Demo persistence so assignments survive a refresh; swap for a `vehicles`
+  // table read when the backend lands.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("fleetmind.vehicles");
+      const stored = raw ? (JSON.parse(raw) as Vehicle[]) : [];
+      if (Array.isArray(stored) && stored.length) {
+        const seedIds = new Set(seedVehicles.map((v) => v.id));
+        setVehicles([...stored.filter((v) => !seedIds.has(v.id)), ...seedVehicles]);
+      }
+    } catch {
+      /* ignore corrupt demo state */
+    }
+  }, []);
+
   // Local-state store today; swap for a `vehicles` table insert when the backend lands.
   function addVehicle(vehicle: Vehicle) {
-    setVehicles((v) => [vehicle, ...v]);
+    setVehicles((v) => {
+      const next = [vehicle, ...v];
+      try {
+        const seedIds = new Set(seedVehicles.map((sv) => sv.id));
+        localStorage.setItem(
+          "fleetmind.vehicles",
+          JSON.stringify(next.filter((nv) => !seedIds.has(nv.id))),
+        );
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
   }
 
   const [query, setQuery] = useState("");
@@ -1144,7 +1172,7 @@ function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
         open={open}
         onOpenChange={setOpen}
         vehicles={vehicles}
-        drivers={drivers.map((d) => d.name)}
+        drivers={assignableDrivers()}
         onSave={(vehicle) => {
           addVehicle(vehicle);
           setToast(`Vehicle ${vehicle.unitId} added successfully.`);
@@ -1155,14 +1183,6 @@ function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
   );
 }
 
-
-const drivers = [
-  { name: "Marcus Johnson", cdl: "Class A", state: "TX", status: "Active", expires: "2028-09-21" },
-  { name: "Elena Vasquez", cdl: "Class A", state: "AZ", status: "Active", expires: "2027-03-14" },
-  { name: "Maria Gonzalez", cdl: "Class A", state: "TX", status: "Renewal Due", expires: "2026-07-19" },
-  { name: "David Park", cdl: "Class B", state: "CA", status: "Active", expires: "2029-01-08" },
-  { name: "Priya Ramachandran", cdl: "Class A", state: "TX", status: "Active", expires: "2028-11-02" },
-];
 
 function DriversView() {
   return (
