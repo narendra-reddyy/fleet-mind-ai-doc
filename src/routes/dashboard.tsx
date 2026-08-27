@@ -389,6 +389,32 @@ function DashboardPage() {
     setVehicles((v) => [vehicle, ...v]);
   }
 
+  const [query, setQuery] = useState("");
+
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as { key: string; label: string; kind: string; section: Section }[];
+    const hits: { key: string; label: string; kind: string; section: Section }[] = [];
+    vehicles.forEach((v) => {
+      if (
+        v.unitId.toLowerCase().includes(q) ||
+        v.vin.toLowerCase().includes(q) ||
+        `${v.make} ${v.model}`.toLowerCase().includes(q) ||
+        (v.driver ?? "").toLowerCase().includes(q)
+      )
+        hits.push({ key: v.id, label: `${v.unitId} — ${v.make} ${v.model}`, kind: "Vehicle", section: "vehicles" });
+    });
+    documents.forEach((d) => {
+      if (d.name.toLowerCase().includes(q) || d.type.toLowerCase().includes(q))
+        hits.push({ key: d.id, label: d.name, kind: "Document", section: "documents" });
+    });
+    drivers.forEach((d) => {
+      if (d.name.toLowerCase().includes(q))
+        hits.push({ key: d.name, label: d.name, kind: "Driver", section: "drivers" });
+    });
+    return hits.slice(0, 6);
+  }, [query, vehicles, documents]);
+
   function ingest(files: File[]) {
     files.forEach((file) => {
       const id = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -488,9 +514,36 @@ function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="hidden md:flex items-center gap-2 rounded-md bg-surface/60 border border-border px-2.5 py-1.5 text-xs text-muted-foreground w-64">
-                  <Search className="h-3.5 w-3.5" />
-                  <span>Search documents, vehicles, drivers…</span>
+                <div className="relative hidden md:block w-64">
+                  <div className="flex items-center gap-2 rounded-md bg-surface/60 border border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+                    <Search className="h-3.5 w-3.5" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search documents, vehicles, drivers…"
+                      className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  {query.trim().length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-surface/95 backdrop-blur shadow-lg">
+                      {searchResults.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">No matches.</div>
+                      )}
+                      {searchResults.map((r) => (
+                        <button
+                          key={r.key}
+                          onClick={() => {
+                            setSection(r.section);
+                            setQuery("");
+                          }}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-surface"
+                        >
+                          <span className="truncate">{r.label}</span>
+                          <span className="shrink-0 text-[10px] text-muted-foreground">{r.kind}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-4 w-4" />
