@@ -1169,8 +1169,50 @@ const quickActions: { label: string; question: string }[] = [
 
 type ChatMessage = { role: "user" | "assistant"; text: string; sources?: string[] };
 
-function answerQuestion(question: string, documents: FleetDoc[]): { text: string; sources: string[] } {
+function answerQuestion(
+  question: string,
+  documents: FleetDoc[],
+  vehicles: Vehicle[],
+): { text: string; sources: string[] } {
   const q = question.toLowerCase();
+
+  const matchedVehicle = vehicles.find(
+    (v) =>
+      q.includes(v.unitId.toLowerCase()) ||
+      q.includes(v.vin.toLowerCase()) ||
+      (v.unitId.replace(/[^0-9]/g, "").length >= 3 &&
+        q.includes(v.unitId.replace(/[^0-9]/g, ""))),
+  );
+  if (matchedVehicle) {
+    const linked = documents.filter(
+      (d) => d.metadata["Vehicle ID"]?.toLowerCase() === matchedVehicle.unitId.toLowerCase(),
+    );
+    return {
+      text:
+        `${matchedVehicle.unitId} — ${matchedVehicle.year} ${matchedVehicle.make} ${matchedVehicle.model} (${matchedVehicle.type})\n` +
+        `• VIN ${matchedVehicle.vin}\n` +
+        `• Status: ${matchedVehicle.status}\n` +
+        `• Mileage: ${formatMileage(matchedVehicle.mileage)}\n` +
+        `• Plate: ${matchedVehicle.plate ?? "—"}${matchedVehicle.plateState ? ` (${matchedVehicle.plateState})` : ""}\n` +
+        `• Assigned driver: ${matchedVehicle.driver ?? "Unassigned"}\n` +
+        `• Documents on file: ${linked.length || "none — upload registration, insurance or inspection documents"}`,
+      sources: linked.map((d) => d.name),
+    };
+  }
+
+  if (/(how many|list|show).*(vehicle|truck|fleet)|fleet roster/.test(q)) {
+    return {
+      text:
+        `${vehicles.length} vehicles in the active demo roster:\n\n` +
+        vehicles
+          .map(
+            (v) =>
+              `• ${v.unitId} — ${v.year} ${v.make} ${v.model}, ${v.status}, ${formatMileage(v.mileage)}, driver ${v.driver ?? "unassigned"}`,
+          )
+          .join("\n"),
+      sources: [],
+    };
+  }
   const withinDays = (type: DocType | DocType[], days: number) => {
     const types = Array.isArray(type) ? type : [type];
     return documents.filter(
@@ -1296,7 +1338,7 @@ function answerQuestion(question: string, documents: FleetDoc[]): { text: string
 }
 
 function AssistantView() {
-  const { documents } = useFleet();
+  const { documents, vehicles } = useFleet();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -1309,7 +1351,7 @@ function AssistantView() {
   function send(q: string) {
     const question = q.trim();
     if (!question) return;
-    const answer = answerQuestion(question, documents);
+    const answer = answerQuestion(question, documents, vehicles);
     setMessages((m) => [
       ...m,
       { role: "user", text: question },
