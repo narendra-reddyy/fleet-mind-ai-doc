@@ -382,6 +382,12 @@ const navItems: { id: Section; label: string; icon: typeof LayoutDashboard }[] =
 function DashboardPage() {
   const [section, setSection] = useState<Section>("dashboard");
   const [documents, setDocuments] = useState<FleetDoc[]>(seedDocuments);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(seedVehicles);
+
+  // Local-state store today; swap for a `vehicles` table insert when the backend lands.
+  function addVehicle(vehicle: Vehicle) {
+    setVehicles((v) => [vehicle, ...v]);
+  }
 
   function ingest(files: File[]) {
     files.forEach((file) => {
@@ -430,7 +436,7 @@ function DashboardPage() {
   }
 
   return (
-    <FleetContext.Provider value={{ documents, ingest }}>
+    <FleetContext.Provider value={{ documents, ingest, vehicles, addVehicle }}>
       <div className="min-h-screen bg-background text-foreground">
         <div className="grid min-h-screen grid-cols-[240px_1fr]">
           <aside className="border-r border-border bg-surface/40 p-4 flex flex-col">
@@ -499,7 +505,7 @@ function DashboardPage() {
             <main className="flex-1 p-6 overflow-auto">
               {section === "dashboard" && <DashboardView onJump={setSection} />}
               {section === "documents" && <DocumentsView />}
-              {section === "vehicles" && <VehiclesView />}
+              {section === "vehicles" && <VehiclesView onGoToDocuments={() => setSection("documents")} />}
               {section === "drivers" && <DriversView />}
               {section === "compliance" && <ComplianceView />}
               {section === "assistant" && <AssistantView />}
