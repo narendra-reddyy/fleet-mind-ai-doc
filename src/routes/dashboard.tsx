@@ -25,6 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { AddVehicleDialog } from "@/components/dashboard/AddVehicleDialog";
+import { VehicleDetail } from "@/components/dashboard/VehicleDetail";
+import { formatMileage, seedVehicles, type Vehicle } from "@/lib/fleet-vehicles";
 
 
 export const Route = createFileRoute("/dashboard")({
@@ -236,6 +239,8 @@ const seedDocuments: FleetDoc[] = [
 type FleetContextValue = {
   documents: FleetDoc[];
   ingest: (files: File[]) => void;
+  vehicles: Vehicle[];
+  addVehicle: (vehicle: Vehicle) => void;
 };
 
 const FleetContext = createContext<FleetContextValue | null>(null);
@@ -377,6 +382,38 @@ const navItems: { id: Section; label: string; icon: typeof LayoutDashboard }[] =
 function DashboardPage() {
   const [section, setSection] = useState<Section>("dashboard");
   const [documents, setDocuments] = useState<FleetDoc[]>(seedDocuments);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(seedVehicles);
+
+  // Local-state store today; swap for a `vehicles` table insert when the backend lands.
+  function addVehicle(vehicle: Vehicle) {
+    setVehicles((v) => [vehicle, ...v]);
+  }
+
+  const [query, setQuery] = useState("");
+
+  const searchResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [] as { key: string; label: string; kind: string; section: Section }[];
+    const hits: { key: string; label: string; kind: string; section: Section }[] = [];
+    vehicles.forEach((v) => {
+      if (
+        v.unitId.toLowerCase().includes(q) ||
+        v.vin.toLowerCase().includes(q) ||
+        `${v.make} ${v.model}`.toLowerCase().includes(q) ||
+        (v.driver ?? "").toLowerCase().includes(q)
+      )
+        hits.push({ key: v.id, label: `${v.unitId} — ${v.make} ${v.model}`, kind: "Vehicle", section: "vehicles" });
+    });
+    documents.forEach((d) => {
+      if (d.name.toLowerCase().includes(q) || d.type.toLowerCase().includes(q))
+        hits.push({ key: d.id, label: d.name, kind: "Document", section: "documents" });
+    });
+    drivers.forEach((d) => {
+      if (d.name.toLowerCase().includes(q))
+        hits.push({ key: d.name, label: d.name, kind: "Driver", section: "drivers" });
+    });
+    return hits.slice(0, 6);
+  }, [query, vehicles, documents]);
 
   function ingest(files: File[]) {
     files.forEach((file) => {
@@ -425,7 +462,7 @@ function DashboardPage() {
   }
 
   return (
-    <FleetContext.Provider value={{ documents, ingest }}>
+    <FleetContext.Provider value={{ documents, ingest, vehicles, addVehicle }}>
       <div className="min-h-screen bg-background text-foreground">
         <div className="grid min-h-screen grid-cols-[240px_1fr]">
           <aside className="border-r border-border bg-surface/40 p-4 flex flex-col">
@@ -477,9 +514,36 @@ function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="hidden md:flex items-center gap-2 rounded-md bg-surface/60 border border-border px-2.5 py-1.5 text-xs text-muted-foreground w-64">
-                  <Search className="h-3.5 w-3.5" />
-                  <span>Search documents, vehicles, drivers…</span>
+                <div className="relative hidden md:block w-64">
+                  <div className="flex items-center gap-2 rounded-md bg-surface/60 border border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+                    <Search className="h-3.5 w-3.5" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search documents, vehicles, drivers…"
+                      className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  {query.trim().length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-surface/95 backdrop-blur shadow-lg">
+                      {searchResults.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">No matches.</div>
+                      )}
+                      {searchResults.map((r) => (
+                        <button
+                          key={r.key}
+                          onClick={() => {
+                            setSection(r.section);
+                            setQuery("");
+                          }}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs hover:bg-surface"
+                        >
+                          <span className="truncate">{r.label}</span>
+                          <span className="shrink-0 text-[10px] text-muted-foreground">{r.kind}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-4 w-4" />
@@ -494,7 +558,7 @@ function DashboardPage() {
             <main className="flex-1 p-6 overflow-auto">
               {section === "dashboard" && <DashboardView onJump={setSection} />}
               {section === "documents" && <DocumentsView />}
-              {section === "vehicles" && <VehiclesView />}
+              {section === "vehicles" && <VehiclesView onGoToDocuments={() => setSection("documents")} />}
               {section === "drivers" && <DriversView />}
               {section === "compliance" && <ComplianceView />}
               {section === "assistant" && <AssistantView />}
@@ -991,24 +1055,56 @@ function ComplianceView() {
 
 /* ---------------- Vehicles / Drivers ---------------- */
 
-const vehicles = [
-  { id: "TRK-1024", make: "Peterbilt 579", year: 2023, status: "Active", mileage: "184,210", driver: "Marcus Johnson" },
-  { id: "TRK-1132", make: "Kenworth T680", year: 2022, status: "Active", mileage: "212,540", driver: "Elena Vasquez" },
-  { id: "TRK-1402", make: "Freightliner Cascadia", year: 2024, status: "Maintenance", mileage: "92,118", driver: "—" },
-  { id: "TRK-0871", make: "Volvo VNL 760", year: 2021, status: "Active", mileage: "298,402", driver: "David Park" },
-  { id: "TRK-1488", make: "Peterbilt 389", year: 2024, status: "Active", mileage: "54,019", driver: "Maria Gonzalez" },
-];
+function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
+  const { vehicles, addVehicle, documents } = useFleet();
+  const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-function VehiclesView() {
+  const selected = vehicles.find((v) => v.id === selectedId) ?? null;
+  const docsFor = (v: Vehicle) =>
+    documents.filter(
+      (d) =>
+        d.metadata["Vehicle ID"]?.toLowerCase() === v.unitId.toLowerCase() ||
+        d.vehicle.replace(/[^0-9]/g, "") === v.unitId.replace(/[^0-9]/g, ""),
+    );
+
+  if (selected) {
+    return (
+      <VehicleDetail
+        vehicle={selected}
+        docs={docsFor(selected)}
+        onBack={() => setSelectedId(null)}
+        statusPill={statusPill}
+        onGoToDocuments={onGoToDocuments}
+      />
+    );
+  }
+
+  const active = vehicles.filter((v) => v.status === "Active").length;
+  const maint = vehicles.filter((v) => v.status === "In Maintenance").length;
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-xl font-semibold">Fleet vehicles</h2>
-          <p className="text-sm text-muted-foreground">247 vehicles · 239 active · 8 in maintenance</p>
+          <p className="text-sm text-muted-foreground">
+            {242 + vehicles.length} vehicles · {234 + active} active · {maint + 7} in maintenance
+          </p>
         </div>
-        <Button variant="hero" size="sm"><Plus className="h-4 w-4" /> Add vehicle</Button>
+        <Button variant="hero" size="sm" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" /> Add vehicle
+        </Button>
       </div>
+
+      {toast && (
+        <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-4 py-2.5 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" />
+          {toast}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface/80 text-xs text-muted-foreground">
@@ -1023,21 +1119,42 @@ function VehiclesView() {
           </thead>
           <tbody>
             {vehicles.map((v) => (
-              <tr key={v.id} className="border-t border-border hover:bg-surface/40">
-                <td className="px-4 py-3 font-medium">{v.id}</td>
-                <td className="px-4 py-3 text-muted-foreground">{v.make}</td>
+              <tr
+                key={v.id}
+                onClick={() => setSelectedId(v.id)}
+                className="cursor-pointer border-t border-border hover:bg-surface/40"
+              >
+                <td className="px-4 py-3 font-medium">{v.unitId}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {v.make} {v.model}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{v.year}</td>
-                <td className="px-4 py-3">{statusPill(v.status === "Maintenance" ? "Action Required" : "Active")}</td>
-                <td className="px-4 py-3 text-muted-foreground">{v.mileage} mi</td>
-                <td className="px-4 py-3 text-muted-foreground">{v.driver}</td>
+                <td className="px-4 py-3">
+                  {statusPill(v.status === "Active" ? "Active" : "Action Required")}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">{formatMileage(v.mileage)}</td>
+                <td className="px-4 py-3 text-muted-foreground">{v.driver ?? "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <AddVehicleDialog
+        open={open}
+        onOpenChange={setOpen}
+        vehicles={vehicles}
+        drivers={drivers.map((d) => d.name)}
+        onSave={(vehicle) => {
+          addVehicle(vehicle);
+          setToast(`Vehicle ${vehicle.unitId} added successfully.`);
+          setSelectedId(vehicle.id);
+        }}
+      />
     </div>
   );
 }
+
 
 const drivers = [
   { name: "Marcus Johnson", cdl: "Class A", state: "TX", status: "Active", expires: "2028-09-21" },
@@ -1105,8 +1222,50 @@ const quickActions: { label: string; question: string }[] = [
 
 type ChatMessage = { role: "user" | "assistant"; text: string; sources?: string[] };
 
-function answerQuestion(question: string, documents: FleetDoc[]): { text: string; sources: string[] } {
+function answerQuestion(
+  question: string,
+  documents: FleetDoc[],
+  vehicles: Vehicle[],
+): { text: string; sources: string[] } {
   const q = question.toLowerCase();
+
+  const matchedVehicle = vehicles.find(
+    (v) =>
+      q.includes(v.unitId.toLowerCase()) ||
+      q.includes(v.vin.toLowerCase()) ||
+      (v.unitId.replace(/[^0-9]/g, "").length >= 3 &&
+        q.includes(v.unitId.replace(/[^0-9]/g, ""))),
+  );
+  if (matchedVehicle) {
+    const linked = documents.filter(
+      (d) => d.metadata["Vehicle ID"]?.toLowerCase() === matchedVehicle.unitId.toLowerCase(),
+    );
+    return {
+      text:
+        `${matchedVehicle.unitId} — ${matchedVehicle.year} ${matchedVehicle.make} ${matchedVehicle.model} (${matchedVehicle.type})\n` +
+        `• VIN ${matchedVehicle.vin}\n` +
+        `• Status: ${matchedVehicle.status}\n` +
+        `• Mileage: ${formatMileage(matchedVehicle.mileage)}\n` +
+        `• Plate: ${matchedVehicle.plate ?? "—"}${matchedVehicle.plateState ? ` (${matchedVehicle.plateState})` : ""}\n` +
+        `• Assigned driver: ${matchedVehicle.driver ?? "Unassigned"}\n` +
+        `• Documents on file: ${linked.length || "none — upload registration, insurance or inspection documents"}`,
+      sources: linked.map((d) => d.name),
+    };
+  }
+
+  if (/(how many|list|show).*(vehicle|truck|fleet)|fleet roster/.test(q)) {
+    return {
+      text:
+        `${vehicles.length} vehicles in the active demo roster:\n\n` +
+        vehicles
+          .map(
+            (v) =>
+              `• ${v.unitId} — ${v.year} ${v.make} ${v.model}, ${v.status}, ${formatMileage(v.mileage)}, driver ${v.driver ?? "unassigned"}`,
+          )
+          .join("\n"),
+      sources: [],
+    };
+  }
   const withinDays = (type: DocType | DocType[], days: number) => {
     const types = Array.isArray(type) ? type : [type];
     return documents.filter(
@@ -1232,7 +1391,7 @@ function answerQuestion(question: string, documents: FleetDoc[]): { text: string
 }
 
 function AssistantView() {
-  const { documents } = useFleet();
+  const { documents, vehicles } = useFleet();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -1245,7 +1404,7 @@ function AssistantView() {
   function send(q: string) {
     const question = q.trim();
     if (!question) return;
-    const answer = answerQuestion(question, documents);
+    const answer = answerQuestion(question, documents, vehicles);
     setMessages((m) => [
       ...m,
       { role: "user", text: question },
