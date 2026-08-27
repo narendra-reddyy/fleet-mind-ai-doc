@@ -991,24 +991,56 @@ function ComplianceView() {
 
 /* ---------------- Vehicles / Drivers ---------------- */
 
-const vehicles = [
-  { id: "TRK-1024", make: "Peterbilt 579", year: 2023, status: "Active", mileage: "184,210", driver: "Marcus Johnson" },
-  { id: "TRK-1132", make: "Kenworth T680", year: 2022, status: "Active", mileage: "212,540", driver: "Elena Vasquez" },
-  { id: "TRK-1402", make: "Freightliner Cascadia", year: 2024, status: "Maintenance", mileage: "92,118", driver: "—" },
-  { id: "TRK-0871", make: "Volvo VNL 760", year: 2021, status: "Active", mileage: "298,402", driver: "David Park" },
-  { id: "TRK-1488", make: "Peterbilt 389", year: 2024, status: "Active", mileage: "54,019", driver: "Maria Gonzalez" },
-];
+function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
+  const { vehicles, addVehicle, documents } = useFleet();
+  const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-function VehiclesView() {
+  const selected = vehicles.find((v) => v.id === selectedId) ?? null;
+  const docsFor = (v: Vehicle) =>
+    documents.filter(
+      (d) =>
+        d.metadata["Vehicle ID"]?.toLowerCase() === v.unitId.toLowerCase() ||
+        d.vehicle.replace(/[^0-9]/g, "") === v.unitId.replace(/[^0-9]/g, ""),
+    );
+
+  if (selected) {
+    return (
+      <VehicleDetail
+        vehicle={selected}
+        docs={docsFor(selected)}
+        onBack={() => setSelectedId(null)}
+        statusPill={statusPill}
+        onGoToDocuments={onGoToDocuments}
+      />
+    );
+  }
+
+  const active = vehicles.filter((v) => v.status === "Active").length;
+  const maint = vehicles.filter((v) => v.status === "In Maintenance").length;
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-xl font-semibold">Fleet vehicles</h2>
-          <p className="text-sm text-muted-foreground">247 vehicles · 239 active · 8 in maintenance</p>
+          <p className="text-sm text-muted-foreground">
+            {242 + vehicles.length} vehicles · {234 + active} active · {maint + 7} in maintenance
+          </p>
         </div>
-        <Button variant="hero" size="sm"><Plus className="h-4 w-4" /> Add vehicle</Button>
+        <Button variant="hero" size="sm" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" /> Add vehicle
+        </Button>
       </div>
+
+      {toast && (
+        <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-4 py-2.5 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" />
+          {toast}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface/80 text-xs text-muted-foreground">
@@ -1023,21 +1055,42 @@ function VehiclesView() {
           </thead>
           <tbody>
             {vehicles.map((v) => (
-              <tr key={v.id} className="border-t border-border hover:bg-surface/40">
-                <td className="px-4 py-3 font-medium">{v.id}</td>
-                <td className="px-4 py-3 text-muted-foreground">{v.make}</td>
+              <tr
+                key={v.id}
+                onClick={() => setSelectedId(v.id)}
+                className="cursor-pointer border-t border-border hover:bg-surface/40"
+              >
+                <td className="px-4 py-3 font-medium">{v.unitId}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {v.make} {v.model}
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{v.year}</td>
-                <td className="px-4 py-3">{statusPill(v.status === "Maintenance" ? "Action Required" : "Active")}</td>
-                <td className="px-4 py-3 text-muted-foreground">{v.mileage} mi</td>
-                <td className="px-4 py-3 text-muted-foreground">{v.driver}</td>
+                <td className="px-4 py-3">
+                  {statusPill(v.status === "Active" ? "Active" : "Action Required")}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">{formatMileage(v.mileage)}</td>
+                <td className="px-4 py-3 text-muted-foreground">{v.driver ?? "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <AddVehicleDialog
+        open={open}
+        onOpenChange={setOpen}
+        vehicles={vehicles}
+        drivers={drivers.map((d) => d.name)}
+        onSave={(vehicle) => {
+          addVehicle(vehicle);
+          setToast(`Vehicle ${vehicle.unitId} added successfully.`);
+          setSelectedId(vehicle.id);
+        }}
+      />
     </div>
   );
 }
+
 
 const drivers = [
   { name: "Marcus Johnson", cdl: "Class A", state: "TX", status: "Active", expires: "2028-09-21" },
