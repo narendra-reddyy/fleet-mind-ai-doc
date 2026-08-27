@@ -242,9 +242,6 @@ export function AddVehicleDialog({ open, onOpenChange, vehicles, drivers, onSave
                   {drivers.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
                       {d.name}
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {d.cdl} · {d.state}
-                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
