@@ -31,12 +31,13 @@ import {
   type VehicleStatus,
   type VehicleType,
 } from "@/lib/fleet-vehicles";
+import type { Driver } from "@/lib/fleet-drivers";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   vehicles: Vehicle[];
-  drivers: string[];
+  drivers: Driver[];
   onSave: (vehicle: Vehicle) => void;
 };
 
