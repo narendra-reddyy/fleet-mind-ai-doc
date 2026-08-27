@@ -1185,6 +1185,16 @@ function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
 
 
 function DriversView() {
+  const { vehicles } = useFleet();
+  const vehiclesByDriver = useMemo(() => {
+    const map = new Map<string, string[]>();
+    vehicles.forEach((v) => {
+      if (!v.driverId) return;
+      map.set(v.driverId, [...(map.get(v.driverId) ?? []), v.unitId]);
+    });
+    return map;
+  }, [vehicles]);
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -1203,16 +1213,20 @@ function DriversView() {
               <th className="px-4 py-2.5 text-left font-medium">State</th>
               <th className="px-4 py-2.5 text-left font-medium">Status</th>
               <th className="px-4 py-2.5 text-left font-medium">CDL Expires</th>
+              <th className="px-4 py-2.5 text-left font-medium">Assigned vehicles</th>
             </tr>
           </thead>
           <tbody>
             {drivers.map((d) => (
-              <tr key={d.name} className="border-t border-border hover:bg-surface/40">
+              <tr key={d.id} className="border-t border-border hover:bg-surface/40">
                 <td className="px-4 py-3 font-medium">{d.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{d.cdl}</td>
                 <td className="px-4 py-3 text-muted-foreground">{d.state}</td>
                 <td className="px-4 py-3">{statusPill(d.status === "Renewal Due" ? "Expiring Soon" : "Active")}</td>
                 <td className="px-4 py-3 text-muted-foreground">{d.expires}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {vehiclesByDriver.get(d.id)?.join(", ") ?? "—"}
+                </td>
               </tr>
             ))}
           </tbody>
