@@ -232,15 +232,18 @@ export function AddVehicleDialog({ open, onOpenChange, vehicles, drivers, onSave
 
             <div className="sm:col-span-2">
               <Label>Assigned driver</Label>
-              <Select value={draft.driver} onValueChange={(v) => set("driver", v)}>
+              <Select value={draft.driverId} onValueChange={(v) => set("driverId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-64">
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {drivers.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {d.cdl} · {d.state}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
