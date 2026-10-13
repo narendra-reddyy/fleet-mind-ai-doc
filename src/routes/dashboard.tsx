@@ -28,7 +28,9 @@ import { Switch } from "@/components/ui/switch";
 import { AddVehicleDialog } from "@/components/dashboard/AddVehicleDialog";
 import { VehicleDetail } from "@/components/dashboard/VehicleDetail";
 import { formatMileage, seedVehicles, type Vehicle } from "@/lib/fleet-vehicles";
-import { assignableDrivers, drivers } from "@/lib/fleet-drivers";
+import { assignableDrivers, drivers as seedDrivers, type Driver } from "@/lib/fleet-drivers";
+import { AddDriverDialog } from "@/components/dashboard/AddDriverDialog";
+import { DriverDetail } from "@/components/dashboard/DriverDetail";
 
 
 export const Route = createFileRoute("/dashboard")({
@@ -242,6 +244,8 @@ type FleetContextValue = {
   ingest: (files: File[]) => void;
   vehicles: Vehicle[];
   addVehicle: (vehicle: Vehicle) => void;
+  drivers: Driver[];
+  addDriver: (driver: Driver) => void;
 };
 
 const FleetContext = createContext<FleetContextValue | null>(null);
@@ -384,6 +388,58 @@ function DashboardPage() {
   const [section, setSection] = useState<Section>("dashboard");
   const [documents, setDocuments] = useState<FleetDoc[]>(seedDocuments);
   const [vehicles, setVehicles] = useState<Vehicle[]>(seedVehicles);
+  const [drivers, setDrivers] = useState<Driver[]>(seedDrivers);
+
+  // Demo persistence for user-added drivers; swap for a `drivers` table later.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("fleetmind.drivers");
+      const stored = raw ? (JSON.parse(raw) as Driver[]) : [];
+      if (Array.isArray(stored) && stored.length) {
+        const seedIds = new Set(seedDrivers.map((d) => d.id));
+        setDrivers([...stored.filter((d) => !seedIds.has(d.id)), ...seedDrivers]);
+      }
+    } catch {
+      /* ignore corrupt demo state */
+    }
+  }, []);
+
+  function persistVehicles(next: Vehicle[]) {
+    try {
+      const seedIds = new Set(seedVehicles.map((sv) => sv.id));
+      // Store all non-seed vehicles plus any seed vehicles whose assignment changed.
+      const changed = next.filter((nv) => {
+        if (!seedIds.has(nv.id)) return true;
+        const orig = seedVehicles.find((sv) => sv.id === nv.id);
+        return orig?.driverId !== nv.driverId;
+      });
+      localStorage.setItem("fleetmind.vehicles", JSON.stringify(changed));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function addDriver(driver: Driver) {
+    setDrivers((d) => {
+      const next = [driver, ...d];
+      try {
+        const seedIds = new Set(seedDrivers.map((sd) => sd.id));
+        localStorage.setItem("fleetmind.drivers", JSON.stringify(next.filter((nd) => !seedIds.has(nd.id))));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+    if (driver.vehicleId) {
+      setVehicles((vs) => {
+        const next = vs.map((v) =>
+          v.id === driver.vehicleId ? { ...v, driverId: driver.id, driver: driver.name } : v,
+        );
+        persistVehicles(next);
+        return next;
+      });
+    }
+  }
 
   // Demo persistence so assignments survive a refresh; swap for a `vehicles`
   // table read when the backend lands.
@@ -393,7 +449,11 @@ function DashboardPage() {
       const stored = raw ? (JSON.parse(raw) as Vehicle[]) : [];
       if (Array.isArray(stored) && stored.length) {
         const seedIds = new Set(seedVehicles.map((v) => v.id));
-        setVehicles([...stored.filter((v) => !seedIds.has(v.id)), ...seedVehicles]);
+        const overrides = new Map(stored.filter((v) => seedIds.has(v.id)).map((v) => [v.id, v]));
+        setVehicles([
+          ...stored.filter((v) => !seedIds.has(v.id)),
+          ...seedVehicles.map((v) => overrides.get(v.id) ?? v),
+        ]);
       }
     } catch {
       /* ignore corrupt demo state */
@@ -404,15 +464,7 @@ function DashboardPage() {
   function addVehicle(vehicle: Vehicle) {
     setVehicles((v) => {
       const next = [vehicle, ...v];
-      try {
-        const seedIds = new Set(seedVehicles.map((sv) => sv.id));
-        localStorage.setItem(
-          "fleetmind.vehicles",
-          JSON.stringify(next.filter((nv) => !seedIds.has(nv.id))),
-        );
-      } catch {
-        /* ignore */
-      }
+      persistVehicles(next);
       return next;
     });
   }
@@ -441,7 +493,7 @@ function DashboardPage() {
         hits.push({ key: d.name, label: d.name, kind: "Driver", section: "drivers" });
     });
     return hits.slice(0, 6);
-  }, [query, vehicles, documents]);
+  }, [query, vehicles, documents, drivers]);
 
   function ingest(files: File[]) {
     files.forEach((file) => {
@@ -490,7 +542,7 @@ function DashboardPage() {
   }
 
   return (
-    <FleetContext.Provider value={{ documents, ingest, vehicles, addVehicle }}>
+    <FleetContext.Provider value={{ documents, ingest, vehicles, addVehicle, drivers, addDriver }}>
       <div className="min-h-screen bg-background text-foreground">
         <div className="grid min-h-screen grid-cols-[240px_1fr]">
           <aside className="border-r border-border bg-surface/40 p-4 flex flex-col">
@@ -587,7 +639,7 @@ function DashboardPage() {
               {section === "dashboard" && <DashboardView onJump={setSection} />}
               {section === "documents" && <DocumentsView />}
               {section === "vehicles" && <VehiclesView onGoToDocuments={() => setSection("documents")} />}
-              {section === "drivers" && <DriversView />}
+              {section === "drivers" && <DriversView onGoToDocuments={() => setSection("documents")} />}
               {section === "compliance" && <ComplianceView />}
               {section === "assistant" && <AssistantView />}
               {section === "settings" && <SettingsView />}
@@ -1084,7 +1136,7 @@ function ComplianceView() {
 /* ---------------- Vehicles / Drivers ---------------- */
 
 function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
-  const { vehicles, addVehicle, documents } = useFleet();
+  const { vehicles, addVehicle, documents, drivers } = useFleet();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -1172,7 +1224,7 @@ function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
         open={open}
         onOpenChange={setOpen}
         vehicles={vehicles}
-        drivers={assignableDrivers()}
+        drivers={assignableDrivers(drivers)}
         onSave={(vehicle) => {
           addVehicle(vehicle);
           setToast(`Vehicle ${vehicle.unitId} added successfully.`);
@@ -1184,26 +1236,74 @@ function VehiclesView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
 }
 
 
-function DriversView() {
-  const { vehicles } = useFleet();
+function DriversView({ onGoToDocuments }: { onGoToDocuments: () => void }) {
+  const { vehicles, drivers, addDriver, documents } = useFleet();
+  const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
   const vehiclesByDriver = useMemo(() => {
-    const map = new Map<string, string[]>();
+    const map = new Map<string, Vehicle[]>();
     vehicles.forEach((v) => {
       if (!v.driverId) return;
-      map.set(v.driverId, [...(map.get(v.driverId) ?? []), v.unitId]);
+      map.set(v.driverId, [...(map.get(v.driverId) ?? []), v]);
     });
     return map;
   }, [vehicles]);
+
+  const selected = drivers.find((d) => d.id === selectedId) ?? null;
+  if (selected) {
+    const name = selected.name.toLowerCase();
+    const docs = documents.filter(
+      (d) =>
+        (d.driver ?? "").toLowerCase() === name ||
+        (d.metadata["Driver name"] ?? "").toLowerCase() === name,
+    );
+    return (
+      <DriverDetail
+        driver={selected}
+        vehicles={vehiclesByDriver.get(selected.id) ?? []}
+        docs={docs}
+        today={TODAY}
+        onBack={() => setSelectedId(null)}
+        statusPill={statusPill}
+        onGoToDocuments={onGoToDocuments}
+      />
+    );
+  }
+
+  const pill = (s: Driver["status"]) =>
+    s === "Renewal Due"
+      ? statusPill("Expiring Soon")
+      : s === "Active"
+      ? statusPill("Active")
+      : (
+          <span className="inline-flex items-center rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
+            {s}
+          </span>
+        );
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-xl font-semibold">Drivers</h2>
-          <p className="text-sm text-muted-foreground">193 active drivers</p>
+          <p className="text-sm text-muted-foreground">
+            {188 + drivers.filter((d) => d.status !== "Inactive").length} active drivers
+          </p>
         </div>
-        <Button variant="hero" size="sm"><Plus className="h-4 w-4" /> Add driver</Button>
+        <Button variant="hero" size="sm" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" /> Add driver
+        </Button>
       </div>
+
+      {toast && (
+        <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-4 py-2.5 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" />
+          {toast}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface/80 text-xs text-muted-foreground">
@@ -1218,20 +1318,35 @@ function DriversView() {
           </thead>
           <tbody>
             {drivers.map((d) => (
-              <tr key={d.id} className="border-t border-border hover:bg-surface/40">
+              <tr
+                key={d.id}
+                onClick={() => setSelectedId(d.id)}
+                className="cursor-pointer border-t border-border hover:bg-surface/40"
+              >
                 <td className="px-4 py-3 font-medium">{d.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{d.cdl}</td>
                 <td className="px-4 py-3 text-muted-foreground">{d.state}</td>
-                <td className="px-4 py-3">{statusPill(d.status === "Renewal Due" ? "Expiring Soon" : "Active")}</td>
+                <td className="px-4 py-3">{pill(d.status)}</td>
                 <td className="px-4 py-3 text-muted-foreground">{d.expires}</td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {vehiclesByDriver.get(d.id)?.join(", ") ?? "—"}
+                  {vehiclesByDriver.get(d.id)?.map((v) => v.unitId).join(", ") ?? "—"}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <AddDriverDialog
+        open={open}
+        onOpenChange={setOpen}
+        drivers={drivers}
+        vehicles={vehicles}
+        onSave={(driver) => {
+          addDriver(driver);
+          setToast(`Driver ${driver.name} added successfully.`);
+        }}
+      />
     </div>
   );
 }
