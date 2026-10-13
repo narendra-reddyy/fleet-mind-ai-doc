@@ -69,7 +69,7 @@ export function AddVehicleDialog({ open, onOpenChange, vehicles, drivers, onSave
       setTouched({ unitId: true, vin: true, make: true, model: true, year: true, mileage: true });
       return;
     }
-    onSave(draftToVehicle(draft));
+    onSave(draftToVehicle(draft, drivers));
     close();
   }
 

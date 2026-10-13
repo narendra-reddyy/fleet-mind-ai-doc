@@ -5,7 +5,7 @@
  * `vehicles` table later (see plan §3) without touching the UI layer.
  */
 
-import { driverById, driverIdByName } from "./fleet-drivers";
+import { driverById, driverIdByName, type Driver } from "./fleet-drivers";
 
 export type VehicleType = "Tractor" | "Trailer" | "Box Truck" | "Van" | "Other";
 export type VehicleStatus = "Active" | "In Maintenance" | "Out of Service";
@@ -108,8 +108,8 @@ export function isVehicleDraftValid(draft: VehicleDraft, existing: Vehicle[]) {
   return Object.keys(validateVehicle(draft, existing)).length === 0;
 }
 
-export function draftToVehicle(draft: VehicleDraft): Vehicle {
-  const assigned = draft.driverId !== "unassigned" ? driverById(draft.driverId) : undefined;
+export function draftToVehicle(draft: VehicleDraft, roster?: Driver[]): Vehicle {
+  const assigned = draft.driverId !== "unassigned" ? driverById(draft.driverId, roster) : undefined;
   return {
     id: `veh_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     unitId: draft.unitId.trim(),
