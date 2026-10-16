@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AddVehicleDialog } from "@/components/dashboard/AddVehicleDialog";
 import { VehicleDetail } from "@/components/dashboard/VehicleDetail";
+import { DashboardFallback } from "@/components/dashboard/DashboardFallback";
 import { formatMileage, seedVehicles, type Vehicle } from "@/lib/fleet-vehicles";
 import { assignableDrivers, drivers as seedDrivers, type Driver } from "@/lib/fleet-drivers";
 import { AddDriverDialog } from "@/components/dashboard/AddDriverDialog";
