@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AddVehicleDialog } from "@/components/dashboard/AddVehicleDialog";
 import { VehicleDetail } from "@/components/dashboard/VehicleDetail";
+import { DashboardFallback } from "@/components/dashboard/DashboardFallback";
 import { formatMileage, seedVehicles, type Vehicle } from "@/lib/fleet-vehicles";
 import { assignableDrivers, drivers as seedDrivers, type Driver } from "@/lib/fleet-drivers";
 import { AddDriverDialog } from "@/components/dashboard/AddDriverDialog";
@@ -45,21 +46,6 @@ export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 
-function DashboardFallback() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-      <div className="max-w-md text-center">
-        <h1 className="font-display text-2xl font-semibold">Dashboard unavailable</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The demo dashboard could not load. Return to the website and try again.
-        </p>
-        <Button asChild variant="hero" className="mt-6">
-          <Link to="/">Back to website</Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 /* ---------------- Document data + AI simulation ---------------- */
 
